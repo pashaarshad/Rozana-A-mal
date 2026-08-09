@@ -2,6 +2,19 @@
 
 type PlayerListener = (playingItemId: string | null, isLoading: boolean) => void;
 
+function getAbsoluteAudioUrl(url: string): string {
+  if (!url) return '';
+  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) {
+    return url;
+  }
+  try {
+    const origin = typeof window !== 'undefined' ? window.location.origin : '';
+    return new URL(url, origin).href;
+  } catch {
+    return url;
+  }
+}
+
 class RecitationPlayer {
   private audio: HTMLAudioElement | null = null;
   private currentItemId: string | null = null;
@@ -13,7 +26,7 @@ class RecitationPlayer {
   constructor() {
     if (typeof window !== 'undefined') {
       this.audio = new Audio();
-      // Set inline attributes for mobile compatibility
+      // Set inline attributes for mobile iOS/Android compatibility
       this.audio.setAttribute('playsinline', 'true');
       this.audio.setAttribute('webkit-playsinline', 'true');
       this.audio.preload = 'auto';
@@ -30,14 +43,21 @@ class RecitationPlayer {
     };
   }
 
-  // Pre-warms audio element on direct user touch/click gesture for mobile iOS/Android
+  // Pre-warms and unlocks audio element on direct user touch/click gesture for mobile iOS/Android
   public unlockMobileAudio() {
     if (this.audio) {
       try {
         if (!this.audio.src) {
           // Silent 1px wav buffer
           this.audio.src = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
-          this.audio.load();
+          const p = this.audio.play();
+          if (p !== undefined) {
+            p.then(() => {
+              if (this.audio && this.audio.src.startsWith('data:')) {
+                this.audio.pause();
+              }
+            }).catch(() => {});
+          }
         }
       } catch (e) {
         console.warn('Mobile audio unlock warning:', e);
@@ -45,7 +65,7 @@ class RecitationPlayer {
     }
   }
 
-  public playRecitation(itemId: string, audioUrl?: string, arabicText?: string, onEnded?: () => void) {
+  public playRecitation(itemId: string, rawAudioUrl?: string, arabicText?: string, onEnded?: () => void) {
     // If already playing or loading this item, toggle pause
     if (this.currentItemId === itemId && (this.audio || (typeof window !== 'undefined' && 'speechSynthesis' in window))) {
       this.pause();
@@ -58,15 +78,12 @@ class RecitationPlayer {
     // Increment session ID to discard events from older play calls
     const sessionId = ++this.currentSessionId;
 
-    if (audioUrl && this.audio) {
+    const absoluteAudioUrl = rawAudioUrl ? getAbsoluteAudioUrl(rawAudioUrl) : '';
+
+    if (absoluteAudioUrl && this.audio) {
       this.currentItemId = itemId;
       this.isLoadingState = true;
       this.notifyListeners();
-
-      // Clear previous audio source and state
-      this.audio.pause();
-      this.audio.src = audioUrl;
-      this.audio.load();
 
       let firedEnded = false;
 
@@ -85,6 +102,7 @@ class RecitationPlayer {
         if (this.audio) {
           this.audio.oncanplaythrough = null;
           this.audio.onplaying = null;
+          this.audio.oncanplay = null;
           this.audio.onended = null;
           this.audio.onerror = null;
           this.audio.onpause = null;
@@ -102,9 +120,17 @@ class RecitationPlayer {
           clearHandlers();
           this.playSpeechSynthesis(itemId, arabicText || '', sessionId, onEnded);
         }
-      }, 7000);
+      }, 9000);
 
       this.audio.oncanplaythrough = () => {
+        if (this.currentSessionId === sessionId) {
+          if (this.activeLoadTimeout) clearTimeout(this.activeLoadTimeout);
+          this.isLoadingState = false;
+          this.notifyListeners();
+        }
+      };
+
+      this.audio.oncanplay = () => {
         if (this.currentSessionId === sessionId) {
           if (this.activeLoadTimeout) clearTimeout(this.activeLoadTimeout);
           this.isLoadingState = false;
@@ -134,6 +160,13 @@ class RecitationPlayer {
           this.playSpeechSynthesis(itemId, arabicText || '', sessionId, onEnded);
         }
       };
+
+      // Set src directly without calling load() beforehand to preserve mobile gesture activation
+      try {
+        this.audio.src = absoluteAudioUrl;
+      } catch (err) {
+        console.warn('Setting audio.src failed:', err);
+      }
 
       const playPromise = this.audio.play();
       if (playPromise !== undefined) {
@@ -225,6 +258,7 @@ class RecitationPlayer {
     if (this.audio) {
       this.audio.oncanplaythrough = null;
       this.audio.onplaying = null;
+      this.audio.oncanplay = null;
       this.audio.onended = null;
       this.audio.onerror = null;
       this.audio.onpause = null;
@@ -258,7 +292,7 @@ class RecitationPlayer {
       try {
         listener(this.currentItemId, this.isLoadingState);
       } catch (err) {
-        console.error('Error in audio player listener:', err);
+        console.error('Error in recitation listener:', err);
       }
     });
   }

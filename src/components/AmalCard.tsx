@@ -57,6 +57,7 @@ export const AmalCard: React.FC<AmalCardProps> = ({
 
   const handleAudioToggle = (e: React.MouseEvent) => {
     e.stopPropagation();
+    recitationPlayer.unlockMobileAudio();
     recitationPlayer.playRecitation(item.id, item.audioUrl, item.arabicText);
   };
 
