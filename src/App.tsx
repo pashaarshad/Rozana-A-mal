@@ -340,7 +340,11 @@ export default function App() {
       )}
 
       {/* Floating Listen Mode Audio Bar */}
-      {showListenMode && <ListenModeBar />}
+      {showListenMode && (
+        <ListenModeBar
+          onClose={() => setShowListenMode(false)}
+        />
+      )}
     </div>
   );
 }

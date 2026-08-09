@@ -1,9 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Play, Pause, Square, Headphones, SkipForward, SkipBack, Loader2, Sparkles, Volume2 } from 'lucide-react';
+import { Play, Pause, Square, Headphones, SkipForward, SkipBack, Loader2, X } from 'lucide-react';
 import { AMAL_ITEMS } from '../data/amalData';
 import { recitationPlayer } from '../utils/audioPlayer';
 
-export const ListenModeBar: React.FC = () => {
+interface ListenModeBarProps {
+  onClose?: () => void;
+}
+
+export const ListenModeBar: React.FC<ListenModeBarProps> = ({ onClose }) => {
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [currentIndex, setCurrentIndex] = useState<number>(0);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -31,11 +35,12 @@ export const ListenModeBar: React.FC = () => {
 
   const playItemAtIndex = (index: number) => {
     if (index < 0 || index >= AMAL_ITEMS.length) return;
+    recitationPlayer.unlockMobileAudio();
     setCurrentIndex(index);
     const item = AMAL_ITEMS[index];
 
     recitationPlayer.playRecitation(item.id, item.audioUrl, item.arabicText, () => {
-      // On ended: automatically play the next item in Listen Mode!
+      // On ended: automatically play the next item in Listen Mode
       if (index + 1 < AMAL_ITEMS.length) {
         playItemAtIndex(index + 1);
       } else {
@@ -45,6 +50,7 @@ export const ListenModeBar: React.FC = () => {
   };
 
   const handleTogglePlay = () => {
+    recitationPlayer.unlockMobileAudio();
     if (isPlaying) {
       recitationPlayer.pause();
       setIsPlaying(false);
@@ -54,11 +60,13 @@ export const ListenModeBar: React.FC = () => {
   };
 
   const handleNext = () => {
+    recitationPlayer.unlockMobileAudio();
     const nextIdx = (currentIndex + 1) % AMAL_ITEMS.length;
     playItemAtIndex(nextIdx);
   };
 
   const handlePrev = () => {
+    recitationPlayer.unlockMobileAudio();
     const prevIdx = (currentIndex - 1 + AMAL_ITEMS.length) % AMAL_ITEMS.length;
     playItemAtIndex(prevIdx);
   };
@@ -66,6 +74,14 @@ export const ListenModeBar: React.FC = () => {
   const handleStop = () => {
     recitationPlayer.stop();
     setIsPlaying(false);
+  };
+
+  const handleCloseBar = () => {
+    recitationPlayer.stop();
+    setIsPlaying(false);
+    if (onClose) {
+      onClose();
+    }
   };
 
   return (
@@ -88,19 +104,26 @@ export const ListenModeBar: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex items-center gap-1 shrink-0">
+          <div className="flex items-center gap-1.5 shrink-0">
             <button
               onClick={() => setIsExpanded(!isExpanded)}
-              className="text-[11px] text-amber-300/80 hover:text-amber-200 underline px-2 py-1"
+              className="text-[11px] text-amber-300/80 hover:text-amber-200 underline px-1.5 py-1"
             >
-              {isExpanded ? 'Hide Info' : 'Show Text'}
+              {isExpanded ? 'Hide' : 'Text'}
+            </button>
+            <button
+              onClick={handleCloseBar}
+              className="p-1 rounded-full text-amber-300/60 hover:text-amber-200 hover:bg-emerald-900/50 transition-all"
+              title="Close Listen Mode"
+            >
+              <X className="w-4 h-4" />
             </button>
           </div>
         </div>
 
         {/* Optional Expanded Arabic Preview */}
         {isExpanded && currentItem && (
-          <div className="p-2.5 rounded-xl bg-emerald-950/60 border border-amber-500/20 text-center space-y-1">
+          <div className="p-2.5 rounded-xl bg-emerald-950/60 border border-amber-500/20 text-center space-y-1 max-h-36 overflow-y-auto">
             <p className="font-arabic text-lg text-amber-200 leading-relaxed dir-rtl" dir="rtl">
               {currentItem.arabicText}
             </p>
@@ -161,10 +184,11 @@ export const ListenModeBar: React.FC = () => {
           </div>
 
           <div className="text-[11px] text-amber-300/80 font-medium pr-1">
-            Auto-Continuous
+            Auto-Next
           </div>
         </div>
       </div>
     </div>
   );
 };
+
