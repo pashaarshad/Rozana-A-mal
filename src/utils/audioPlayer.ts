@@ -63,6 +63,7 @@ class RecitationPlayer {
         if (!this.audio.src) {
           // Silent 1px wav buffer
           this.audio.src = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
+          this.audio.load();
         }
         const p = this.audio.play();
         if (p !== undefined) {
@@ -189,9 +190,10 @@ class RecitationPlayer {
         }
       };
 
-      // Set src directly
+      // Set src and call load() to initiate media stream loading
       try {
         this.audio.src = absoluteAudioUrl;
+        this.audio.load();
       } catch (err) {
         console.warn('Setting audio.src failed:', err);
       }
