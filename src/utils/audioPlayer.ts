@@ -16,7 +16,7 @@ function getAbsoluteAudioUrl(url: string): string {
 }
 
 class RecitationPlayer {
-  private audio: HTMLAudioElement | null = null;
+  private activeAudio: HTMLAudioElement | null = null;
   private currentItemId: string | null = null;
   private isLoadingState: boolean = false;
   private listeners: Set<PlayerListener> = new Set();
@@ -25,19 +25,11 @@ class RecitationPlayer {
   private ttsFallbackTimeout: ReturnType<typeof setTimeout> | null = null;
 
   constructor() {
-    if (typeof window !== 'undefined') {
-      this.audio = new Audio();
-      // Set inline attributes for mobile iOS/Android compatibility
-      this.audio.setAttribute('playsinline', 'true');
-      this.audio.setAttribute('webkit-playsinline', 'true');
-      this.audio.preload = 'auto';
-
-      if ('speechSynthesis' in window) {
-        try {
-          window.speechSynthesis.getVoices();
-        } catch {
-          // ignore
-        }
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      try {
+        window.speechSynthesis.getVoices();
+      } catch {
+        // ignore
       }
     }
   }
@@ -67,7 +59,7 @@ class RecitationPlayer {
 
   public playRecitation(itemId: string, rawAudioUrl?: string, arabicText?: string, onEnded?: () => void) {
     // If already playing or loading this item, toggle pause
-    if (this.currentItemId === itemId && (this.audio || (typeof window !== 'undefined' && 'speechSynthesis' in window))) {
+    if (this.currentItemId === itemId) {
       this.pause();
       return;
     }
@@ -80,7 +72,7 @@ class RecitationPlayer {
 
     const absoluteAudioUrl = rawAudioUrl ? getAbsoluteAudioUrl(rawAudioUrl) : '';
 
-    if (absoluteAudioUrl && this.audio) {
+    if (absoluteAudioUrl && typeof window !== 'undefined') {
       this.currentItemId = itemId;
       this.isLoadingState = true;
       this.notifyListeners();
@@ -98,15 +90,25 @@ class RecitationPlayer {
         }
       };
 
+      // Create a fresh Audio element for every track to avoid browser media pipeline state corruption
+      const audio = new Audio();
+      this.activeAudio = audio;
+
+      audio.setAttribute('playsinline', 'true');
+      audio.setAttribute('webkit-playsinline', 'true');
+      audio.preload = 'auto';
+
+      if (absoluteAudioUrl.startsWith('http://') || absoluteAudioUrl.startsWith('https://')) {
+        audio.crossOrigin = 'anonymous';
+      }
+
       const clearHandlers = () => {
-        if (this.audio) {
-          this.audio.oncanplaythrough = null;
-          this.audio.onplaying = null;
-          this.audio.oncanplay = null;
-          this.audio.onended = null;
-          this.audio.onerror = null;
-          this.audio.onpause = null;
-        }
+        audio.oncanplaythrough = null;
+        audio.onplaying = null;
+        audio.oncanplay = null;
+        audio.onended = null;
+        audio.onerror = null;
+        audio.onpause = null;
         if (this.activeLoadTimeout) {
           clearTimeout(this.activeLoadTimeout);
           this.activeLoadTimeout = null;
@@ -118,42 +120,38 @@ class RecitationPlayer {
         if (this.currentSessionId === sessionId && this.isLoadingState) {
           console.warn('Audio URL load timed out, falling back to Web Speech API');
           clearHandlers();
+          try {
+            audio.pause();
+          } catch {}
           this.playSpeechSynthesis(itemId, arabicText || '', sessionId, onEnded);
         }
       }, 6000);
 
-      this.audio.oncanplaythrough = () => {
+      const markReadyAndPlaying = () => {
         if (this.currentSessionId === sessionId) {
-          if (this.activeLoadTimeout) clearTimeout(this.activeLoadTimeout);
-          this.isLoadingState = false;
-          this.notifyListeners();
+          if (this.activeLoadTimeout) {
+            clearTimeout(this.activeLoadTimeout);
+            this.activeLoadTimeout = null;
+          }
+          if (this.isLoadingState) {
+            this.isLoadingState = false;
+            this.notifyListeners();
+          }
         }
       };
 
-      this.audio.oncanplay = () => {
-        if (this.currentSessionId === sessionId) {
-          if (this.activeLoadTimeout) clearTimeout(this.activeLoadTimeout);
-          this.isLoadingState = false;
-          this.notifyListeners();
-        }
-      };
+      audio.oncanplaythrough = markReadyAndPlaying;
+      audio.oncanplay = markReadyAndPlaying;
+      audio.onplaying = markReadyAndPlaying;
 
-      this.audio.onplaying = () => {
-        if (this.currentSessionId === sessionId) {
-          if (this.activeLoadTimeout) clearTimeout(this.activeLoadTimeout);
-          this.isLoadingState = false;
-          this.notifyListeners();
-        }
-      };
-
-      this.audio.onended = () => {
+      audio.onended = () => {
         if (this.currentSessionId === sessionId) {
           clearHandlers();
           cleanupAndTriggerEnd();
         }
       };
 
-      this.audio.onerror = (e) => {
+      audio.onerror = (e) => {
         if (this.currentSessionId === sessionId) {
           console.warn('Audio URL playback error, falling back to Web Speech API:', e);
           clearHandlers();
@@ -162,12 +160,12 @@ class RecitationPlayer {
       };
 
       try {
-        this.audio.src = absoluteAudioUrl;
+        audio.src = absoluteAudioUrl;
       } catch (err) {
         console.warn('Setting audio.src failed:', err);
       }
 
-      const playPromise = this.audio.play();
+      const playPromise = audio.play();
       if (playPromise !== undefined) {
         playPromise.catch((err) => {
           // Ignore AbortError caused by user switching tracks or pausing
@@ -289,16 +287,19 @@ class RecitationPlayer {
       this.ttsFallbackTimeout = null;
     }
 
-    if (this.audio) {
-      this.audio.oncanplaythrough = null;
-      this.audio.onplaying = null;
-      this.audio.oncanplay = null;
-      this.audio.onended = null;
-      this.audio.onerror = null;
-      this.audio.onpause = null;
+    if (this.activeAudio) {
+      const audio = this.activeAudio;
+      this.activeAudio = null;
+      audio.oncanplaythrough = null;
+      audio.onplaying = null;
+      audio.oncanplay = null;
+      audio.onended = null;
+      audio.onerror = null;
+      audio.onpause = null;
       try {
-        this.audio.pause();
-        this.audio.currentTime = 0;
+        audio.pause();
+        audio.removeAttribute('src');
+        audio.load();
       } catch (e) {
         console.warn('Audio pause error:', e);
       }
