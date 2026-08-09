@@ -22,6 +22,8 @@ class RecitationPlayer {
   private listeners: Set<PlayerListener> = new Set();
   private currentSessionId: number = 0;
   private activeLoadTimeout: ReturnType<typeof setTimeout> | null = null;
+  private ttsFallbackTimeout: ReturnType<typeof setTimeout> | null = null;
+  private currentUtterance: SpeechSynthesisUtterance | null = null;
 
   constructor() {
     if (typeof window !== 'undefined') {
@@ -30,6 +32,14 @@ class RecitationPlayer {
       this.audio.setAttribute('playsinline', 'true');
       this.audio.setAttribute('webkit-playsinline', 'true');
       this.audio.preload = 'auto';
+
+      if ('speechSynthesis' in window) {
+        try {
+          window.speechSynthesis.getVoices();
+        } catch {
+          // ignore
+        }
+      }
     }
   }
 
@@ -43,24 +53,39 @@ class RecitationPlayer {
     };
   }
 
-  // Pre-warms and unlocks audio element on direct user touch/click gesture for mobile iOS/Android
+  // Pre-warms and unlocks both Audio element AND Web Speech Synthesis on direct user touch/click gesture for mobile iOS/Android
   public unlockMobileAudio() {
+    if (typeof window === 'undefined') return;
+
+    // 1. Unlock HTML5 Audio
     if (this.audio) {
       try {
         if (!this.audio.src) {
           // Silent 1px wav buffer
           this.audio.src = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
-          const p = this.audio.play();
-          if (p !== undefined) {
-            p.then(() => {
-              if (this.audio && this.audio.src.startsWith('data:')) {
-                this.audio.pause();
-              }
-            }).catch(() => {});
-          }
+        }
+        const p = this.audio.play();
+        if (p !== undefined) {
+          p.then(() => {
+            if (this.audio && this.audio.src.startsWith('data:')) {
+              this.audio.pause();
+            }
+          }).catch(() => {});
         }
       } catch (e) {
         console.warn('Mobile audio unlock warning:', e);
+      }
+    }
+
+    // 2. Unlock Web Speech Synthesis
+    if ('speechSynthesis' in window) {
+      try {
+        window.speechSynthesis.resume();
+        const dummy = new SpeechSynthesisUtterance('');
+        dummy.volume = 0;
+        window.speechSynthesis.speak(dummy);
+      } catch (e) {
+        console.warn('SpeechSynthesis unlock warning:', e);
       }
     }
   }
@@ -71,6 +96,9 @@ class RecitationPlayer {
       this.pause();
       return;
     }
+
+    // Unlock audio contexts in case gesture is attached
+    this.unlockMobileAudio();
 
     // Stop previous media and invalidate past session callbacks
     this.stopInternal();
@@ -113,14 +141,14 @@ class RecitationPlayer {
         }
       };
 
-      // Timeout safeguard in case network hangs
+      // Fast 2.5 second timeout safeguard for bad network / Vercel range request failures
       this.activeLoadTimeout = setTimeout(() => {
         if (this.currentSessionId === sessionId && this.isLoadingState) {
-          console.warn('Audio URL load timed out, trying speech synthesis fallback');
+          console.warn('Audio URL load timed out (2.5s), switching to Web Speech API fallback');
           clearHandlers();
           this.playSpeechSynthesis(itemId, arabicText || '', sessionId, onEnded);
         }
-      }, 9000);
+      }, 2500);
 
       this.audio.oncanplaythrough = () => {
         if (this.currentSessionId === sessionId) {
@@ -155,13 +183,13 @@ class RecitationPlayer {
 
       this.audio.onerror = (e) => {
         if (this.currentSessionId === sessionId) {
-          console.warn('Audio URL playback error, falling back to Web Speech API:', e);
+          console.warn('Audio URL playback error, switching immediately to Web Speech API:', e);
           clearHandlers();
           this.playSpeechSynthesis(itemId, arabicText || '', sessionId, onEnded);
         }
       };
 
-      // Set src directly without calling load() beforehand to preserve mobile gesture activation
+      // Set src directly
       try {
         this.audio.src = absoluteAudioUrl;
       } catch (err) {
@@ -172,7 +200,7 @@ class RecitationPlayer {
       if (playPromise !== undefined) {
         playPromise.catch((err) => {
           if (this.currentSessionId === sessionId) {
-            console.warn('audio.play() rejected (autoplay/format constraint), falling back to TTS:', err);
+            console.warn('audio.play() rejected (autoplay/format constraint), switching to Speech Synthesis:', err);
             clearHandlers();
             this.playSpeechSynthesis(itemId, arabicText || '', sessionId, onEnded);
           }
@@ -198,8 +226,9 @@ class RecitationPlayer {
 
     try {
       window.speechSynthesis.cancel();
+      window.speechSynthesis.resume();
     } catch (e) {
-      console.warn('SpeechSynthesis cancel error:', e);
+      console.warn('SpeechSynthesis reset warning:', e);
     }
 
     this.currentItemId = itemId;
@@ -209,13 +238,31 @@ class RecitationPlayer {
     // Strip diacritics for clearer mobile Web Speech Synthesis
     const cleanText = text.replace(/[\u0610-\u061A\u06D6-\u06DC\u06DF-\u06E8\u06EA-\u06ED]/g, '');
     const utterance = new SpeechSynthesisUtterance(cleanText || text);
+    this.currentUtterance = utterance;
+
     utterance.lang = 'ar-SA';
     utterance.rate = 0.85;
+
+    // Pick best Arabic voice if available
+    try {
+      const voices = window.speechSynthesis.getVoices();
+      const arabicVoice = voices.find((v) => v.lang.startsWith('ar'));
+      if (arabicVoice) {
+        utterance.voice = arabicVoice;
+      }
+    } catch {
+      // ignore
+    }
 
     let fired = false;
     const finish = () => {
       if (fired) return;
       fired = true;
+      if (this.ttsFallbackTimeout) {
+        clearTimeout(this.ttsFallbackTimeout);
+        this.ttsFallbackTimeout = null;
+      }
+      this.currentUtterance = null;
       if (this.currentSessionId === sessionId) {
         this.currentItemId = null;
         this.isLoadingState = false;
@@ -226,6 +273,15 @@ class RecitationPlayer {
 
     utterance.onend = finish;
     utterance.onerror = finish;
+
+    // Set a safety timeout for iOS Safari where utterance.onend sometimes drops
+    const estimatedDurationMs = Math.max(5000, text.length * 160);
+    this.ttsFallbackTimeout = setTimeout(() => {
+      if (this.currentSessionId === sessionId) {
+        console.warn('TTS safety duration reached, advancing item');
+        finish();
+      }
+    }, estimatedDurationMs);
 
     try {
       window.speechSynthesis.speak(utterance);
@@ -254,6 +310,13 @@ class RecitationPlayer {
       clearTimeout(this.activeLoadTimeout);
       this.activeLoadTimeout = null;
     }
+
+    if (this.ttsFallbackTimeout) {
+      clearTimeout(this.ttsFallbackTimeout);
+      this.ttsFallbackTimeout = null;
+    }
+
+    this.currentUtterance = null;
 
     if (this.audio) {
       this.audio.oncanplaythrough = null;
