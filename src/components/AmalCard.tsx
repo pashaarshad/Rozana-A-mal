@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Plus,
   Minus,
@@ -9,9 +9,13 @@ import {
   Maximize2,
   Volume2,
   BookOpen,
+  Play,
+  Pause,
+  Loader2,
 } from 'lucide-react';
 import { AmalItem, UserSettings } from '../types';
 import { soundService, triggerVibration } from '../utils/sound';
+import { recitationPlayer } from '../utils/audioPlayer';
 
 interface AmalCardProps {
   item: AmalItem;
@@ -34,6 +38,27 @@ export const AmalCard: React.FC<AmalCardProps> = ({
 }) => {
   const [showArabic, setShowArabic] = useState<boolean>(true);
   const [isAnimate, setIsAnimate] = useState<boolean>(false);
+  const [isPlaying, setIsPlaying] = useState<boolean>(false);
+  const [isLoadingAudio, setIsLoadingAudio] = useState<boolean>(false);
+
+  useEffect(() => {
+    const unsubscribe = recitationPlayer.subscribe((playingItemId, loading) => {
+      if (playingItemId === item.id) {
+        setIsLoadingAudio(loading);
+        setIsPlaying(!loading);
+      } else {
+        setIsPlaying(false);
+        setIsLoadingAudio(false);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [item.id]);
+
+  const handleAudioToggle = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    recitationPlayer.playRecitation(item.id, item.audioUrl, item.arabicText);
+  };
 
   const isCompleted = count >= item.targetCount;
 
@@ -104,7 +129,31 @@ export const AmalCard: React.FC<AmalCardProps> = ({
           )}
         </div>
 
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1.5">
+          {/* Audio Recitation Play Button */}
+          <button
+            onClick={handleAudioToggle}
+            className={`p-1.5 rounded-xl border transition-all flex items-center gap-1 text-xs px-2.5 font-medium ${
+              isPlaying
+                ? 'bg-amber-500 text-emerald-950 border-amber-400 font-bold shadow-[0_0_10px_rgba(212,175,55,0.4)] animate-pulse'
+                : isLoadingAudio
+                ? 'bg-emerald-900/80 text-amber-300 border-amber-500/30'
+                : 'bg-emerald-900/60 hover:bg-emerald-800 text-amber-300 border-amber-500/30'
+            }`}
+            title={isPlaying ? 'Pause Audio Recitation' : 'Play Audio Recitation'}
+          >
+            {isLoadingAudio ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-300" />
+            ) : isPlaying ? (
+              <Pause className="w-3.5 h-3.5 fill-current" />
+            ) : (
+              <Play className="w-3.5 h-3.5 fill-current" />
+            )}
+            <span className="hidden sm:inline font-medium">
+              {isLoadingAudio ? 'Loading...' : isPlaying ? 'Playing' : 'Listen'}
+            </span>
+          </button>
+
           {/* Open Tasbeeh Mode */}
           <button
             onClick={() => onOpenFullCounter(item)}

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   X,
   RotateCcw,
@@ -8,9 +8,13 @@ import {
   ChevronRight,
   CheckCircle2,
   Sparkles,
+  Play,
+  Pause,
+  Loader2,
 } from 'lucide-react';
 import { AmalItem, UserSettings } from '../types';
 import { soundService, triggerVibration } from '../utils/sound';
+import { recitationPlayer } from '../utils/audioPlayer';
 
 interface FullCounterModalProps {
   item: AmalItem;
@@ -39,6 +43,27 @@ export const FullCounterModal: React.FC<FullCounterModalProps> = ({
 }) => {
   const [isAnimate, setIsAnimate] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(settings.soundEnabled);
+  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
+  const [isLoadingAudio, setIsLoadingAudio] = useState(false);
+
+  useEffect(() => {
+    const unsubscribe = recitationPlayer.subscribe((playingItemId, loading) => {
+      if (playingItemId === item.id) {
+        setIsLoadingAudio(loading);
+        setIsPlayingAudio(!loading);
+      } else {
+        setIsPlayingAudio(false);
+        setIsLoadingAudio(false);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [item.id]);
+
+  const handleAudioToggle = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    recitationPlayer.playRecitation(item.id, item.audioUrl, item.arabicText);
+  };
 
   const currentIndex = allItems.findIndex((i) => i.id === item.id);
   const isCompleted = count >= item.targetCount;
@@ -86,6 +111,27 @@ export const FullCounterModal: React.FC<FullCounterModalProps> = ({
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Audio Recitation Button */}
+          <button
+            onClick={handleAudioToggle}
+            className={`p-3 rounded-full border transition-all flex items-center justify-center ${
+              isPlayingAudio
+                ? 'bg-amber-500 text-emerald-950 border-amber-400 font-bold shadow-[0_0_12px_rgba(212,175,55,0.5)] animate-pulse'
+                : isLoadingAudio
+                ? 'bg-emerald-950 text-amber-300 border-amber-500/30'
+                : 'bg-emerald-950 text-amber-300 border-amber-500/30 hover:bg-emerald-900'
+            }`}
+            title={isPlayingAudio ? 'Pause Audio Recitation' : 'Play Audio Recitation'}
+          >
+            {isLoadingAudio ? (
+              <Loader2 className="w-5 h-5 animate-spin text-amber-300" />
+            ) : isPlayingAudio ? (
+              <Pause className="w-5 h-5 fill-current" />
+            ) : (
+              <Play className="w-5 h-5 fill-current" />
+            )}
+          </button>
+
           <button
             onClick={() => setSoundEnabled(!soundEnabled)}
             className="p-3 rounded-full bg-emerald-950 border border-amber-500/30 text-amber-200 hover:bg-emerald-900 transition-all"

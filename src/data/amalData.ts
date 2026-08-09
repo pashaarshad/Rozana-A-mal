@@ -16,7 +16,7 @@ export const AMAL_ITEMS: AmalItem[] = [
     transliteration: "Allahumma salli 'ala Muhammadin wa 'ala ali Muhammadin kama sallayta 'ala Ibrahima wa 'ala ali Ibrahima innaka Hamidun Majid.",
     meaningUrduRoman: 'Awwal aur Aakhir kam se kam 3 bar Durood-e-Pak zaroor padhein.',
     meaningEnglish: 'O Allah, send blessings upon Muhammad and upon the family of Muhammad. Read at least 3 times at the start and end of Amal.',
-    notes: 'Awwal 3 bar Durood-e-Pak padhna'
+    notes: 'Awwal 3 bar Durood-e-Pak padhna',
   },
   {
     id: 'fatiha',
@@ -30,7 +30,8 @@ export const AMAL_ITEMS: AmalItem[] = [
     transliteration: "Alhamdu lillahi Rabbil 'alamin. Ar-Rahmanir-Rahim. Maliki Yawmid-Din. Iyyaka na'budu wa iyyaka nasta'in. Ihdinas-siratal-mustaqim. Siratalladhina an'amta 'alayhim ghayril-maghdubi 'alayhim wa lad-dallin.",
     meaningUrduRoman: '7 Bar Surah Fatiha padhein (Thodi aawaz se).',
     meaningEnglish: '[All] praise is due to Allah, Lord of the worlds. The Entirely Merciful, the Especially Merciful. Sovereign of the Day of Recompense. It is You we worship and You we ask for help. Guide us to the straight path.',
-    notes: '7 Times - Recite with audible, gentle voice'
+    notes: '7 Times - Recite with audible, gentle voice',
+    audioUrl: 'https://cdn.islamic.network/quran/audio-surah/128/ar.alafasy/1.mp3'
   },
   {
     id: 'ayatul_kursi',
@@ -44,7 +45,8 @@ export const AMAL_ITEMS: AmalItem[] = [
     transliteration: "Allahu la ilaha illa Huwal-Hayyul-Qayyum. La ta'khudhuhu sinatun wa la nawm. Lahu ma fis-samawati wa ma fil-ard. Man dhal-ladhi yashfa'u 'indahu illa bi-idhnihi. Ya'lamu ma bayna aydihim wa ma khalfahum wa la yuhituna bi-shay'im-min 'ilmihi illa bima sha'a. Wasi'a kursiyyuhus-samawati wal-ard, wa la ya'uduhu hifzuhuma, wa Huwal-'Aliyyul-'Azim.",
     meaningUrduRoman: '7 Bar Ayatul Kursi padhein.',
     meaningEnglish: 'Allah! There is no deity except Him, the Ever-Living, the Sustainer of [all] existence. Neither drowsiness overtakes Him nor sleep. To Him belongs whatever is in the heavens and whatever is on the earth.',
-    notes: '7 Times - Divine Protection'
+    notes: '7 Times - Divine Protection',
+    audioUrl: 'https://cdn.islamic.network/quran/audio/128/ar.alafasy/262.mp3'
   },
   {
     id: 'kafirun',
@@ -58,7 +60,8 @@ export const AMAL_ITEMS: AmalItem[] = [
     transliteration: "Qul ya ayyuhal-kafirun. La a'budu ma ta'budun. Wa la antum 'abiduna ma a'bud. Wa la ana 'abidum ma 'abattum. Wa la antum 'abiduna ma a'bud. Lakum dinukum wa liya din.",
     meaningUrduRoman: '7 Bar Sureh Kafiroon padhein.',
     meaningEnglish: 'Say, "O disbelievers, I do not worship what you worship. Nor are you worshippers of what I worship... To you be your religion, and to me my religion."',
-    notes: '7 Times'
+    notes: '7 Times',
+    audioUrl: 'https://cdn.islamic.network/quran/audio-surah/128/ar.alafasy/109.mp3'
   },
   {
     id: 'ikhlas',
@@ -72,7 +75,8 @@ export const AMAL_ITEMS: AmalItem[] = [
     transliteration: "Qul Huwallahu Ahad. Allahus-Samad. Lam yalid wa lam yulad. Wa lam yakul-lahu kufuwan ahad.",
     meaningUrduRoman: '7 Bar Surah Ikhlas padhein.',
     meaningEnglish: 'Say, "He is Allah, [who is] One, Allah, the Eternal Refuge. He neither begets nor is born, Nor is there to Him any equivalent."',
-    notes: '7 Times - Absolute Sincerity & Oneness'
+    notes: '7 Times - Absolute Sincerity & Oneness',
+    audioUrl: 'https://cdn.islamic.network/quran/audio-surah/128/ar.alafasy/112.mp3'
   },
   {
     id: 'falaq',
@@ -86,7 +90,8 @@ export const AMAL_ITEMS: AmalItem[] = [
     transliteration: "Qul a'udhu bi-Rabbil-falaq. Min sharri ma khalaq. Wa min sharri ghasiqin idha waqab. Wa min sharrin-naffathati fil-'uqad. Wa min sharri hasidin idha hasad.",
     meaningUrduRoman: '7 Bar Surah Falaq padhein.',
     meaningEnglish: 'Say, "I seek refuge in the Lord of daybreak from the evil of that which He created and from the evil of darkness when it settles and from the evil of the blowers in knots..."',
-    notes: '7 Times - Seeking Refuge from External Evils'
+    notes: '7 Times - Seeking Refuge from External Evils',
+    audioUrl: 'https://cdn.islamic.network/quran/audio-surah/128/ar.alafasy/113.mp3'
   },
   {
     id: 'nas',
@@ -100,7 +105,8 @@ export const AMAL_ITEMS: AmalItem[] = [
     transliteration: "Qul a'udhu bi-Rabbin-nas. Malikin-nas. Ilahin-nas. Min sharril-waswasil-khannas. Alladhi yuwaswisu fi sudurin-nas. Minal-jinnati wan-nas.",
     meaningUrduRoman: '7 Bar Surah Naas padhein.',
     meaningEnglish: 'Say, "I seek refuge in the Lord of mankind, The Sovereign of mankind. The God of mankind, From the evil of the retreating whisperer - Who whispers into the breasts of mankind..."',
-    notes: '7 Times - Protection from Internal Whispers'
+    notes: '7 Times - Protection from Internal Whispers',
+    audioUrl: 'https://cdn.islamic.network/quran/audio-surah/128/ar.alafasy/114.mp3'
   },
   {
     id: 'tawbah',
@@ -114,7 +120,8 @@ export const AMAL_ITEMS: AmalItem[] = [
     transliteration: "Laqad ja'akum rasulum min anfusikum 'azizun 'alayhi ma 'anittum harisun 'alaykum bil-mu'minina ra'ufur-rahim. Fa-in tawallaw faqul hasbiyallahu la ilaha illa Huwa, 'alayhi tawakkaltu wa Huwa Rabbul-'Arshil-'Azim.",
     meaningUrduRoman: 'Din me 1 bar ya 2 bar ya hosake to 3 bar 21 martaba Sureh Touba k last k 2 aayath zaroor padna.',
     meaningEnglish: 'There has certainly come to you a Messenger from among yourselves. Grievous to him is what you suffer; [he is] concerned over you and to the believers is kind and merciful. But if they turn away, say, "Sufficient for me is Allah; there is no deity except Him. On Him I have relied, and He is the Lord of the Great Throne."',
-    notes: '21 Times (1 to 3 times daily) - Special Spiritual Relief'
+    notes: '21 Times (1 to 3 times daily) - Special Spiritual Relief',
+    audioUrl: 'https://cdn.islamic.network/quran/audio/128/ar.alafasy/1363.mp3'
   },
   {
     id: 'quraish',
@@ -128,7 +135,8 @@ export const AMAL_ITEMS: AmalItem[] = [
     transliteration: "Li-ilafi Quraish. Ilafihim rihlata ash-shitai wash-shaif. Fal-ya'budu Rabba hazal-bait. Allazi at'amahum min ju'in wa-amanahum min khawf.",
     meaningUrduRoman: 'Aur Din me 1 bar ya 2 bar Khuresh 113 martaba a amal zaroor karna.',
     meaningEnglish: 'For the accustomed security of the Quraish - Their accustomed security [in] the caravan of winter and summer - Let them worship the Lord of this House, Who has fed them against hunger and made them safe from fear.',
-    notes: '113 Times Counter - Protection from Hunger, Fear & Hardship'
+    notes: '113 Times Counter - Protection from Hunger, Fear & Hardship',
+    audioUrl: 'https://cdn.islamic.network/quran/audio-surah/128/ar.alafasy/106.mp3'
   }
 ];
 

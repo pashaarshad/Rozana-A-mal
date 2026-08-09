@@ -13,6 +13,7 @@ export interface AmalItem {
   meaningUrduRoman: string;
   meaningEnglish: string;
   notes?: string;
+  audioUrl?: string;
 }
 
 export interface DayProgress {
