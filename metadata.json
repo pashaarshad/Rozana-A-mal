@@ -1,0 +1,6 @@
+{
+  "name": "Daily Amal - Islamic Wazaif Counter",
+  "description": "A premium offline-first Islamic daily wazaif and Qur'an counter tracker with automated local storage, daily progress, and large readable Arabic typography.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
