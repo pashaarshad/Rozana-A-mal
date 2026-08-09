@@ -36,17 +36,28 @@ class RecitationPlayer {
       const audio = new Audio(audioUrl);
       this.currentAudio = audio;
 
+      // Timeout safeguard in case network hangs
+      const loadTimeout = setTimeout(() => {
+        if (this.currentItemId === itemId && this.isLoadingState) {
+          console.warn('Audio load timed out, trying speech synthesis fallback');
+          this.playSpeechSynthesis(itemId, arabicText || '');
+        }
+      }, 7000);
+
       audio.addEventListener('canplaythrough', () => {
+        clearTimeout(loadTimeout);
         this.isLoadingState = false;
         this.notifyListeners();
       });
 
       audio.addEventListener('play', () => {
+        clearTimeout(loadTimeout);
         this.isLoadingState = false;
         this.notifyListeners();
       });
 
       audio.addEventListener('pause', () => {
+        clearTimeout(loadTimeout);
         if (this.currentItemId === itemId) {
           this.currentItemId = null;
           this.isLoadingState = false;
@@ -55,6 +66,7 @@ class RecitationPlayer {
       });
 
       audio.addEventListener('ended', () => {
+        clearTimeout(loadTimeout);
         this.currentItemId = null;
         this.currentAudio = null;
         this.isLoadingState = false;
@@ -62,11 +74,13 @@ class RecitationPlayer {
       });
 
       audio.addEventListener('error', () => {
+        clearTimeout(loadTimeout);
         console.warn('Audio URL playback error, falling back to Web Speech API');
         this.playSpeechSynthesis(itemId, arabicText || '');
       });
 
       audio.play().catch(() => {
+        clearTimeout(loadTimeout);
         this.playSpeechSynthesis(itemId, arabicText || '');
       });
     } else if (arabicText) {

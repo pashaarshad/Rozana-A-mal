@@ -17,6 +17,7 @@ export const AMAL_ITEMS: AmalItem[] = [
     meaningUrduRoman: 'Awwal aur Aakhir kam se kam 3 bar Durood-e-Pak zaroor padhein.',
     meaningEnglish: 'O Allah, send blessings upon Muhammad and upon the family of Muhammad. Read at least 3 times at the start and end of Amal.',
     notes: 'Awwal 3 bar Durood-e-Pak padhna',
+    audioUrl: '/audio/durood.mp3'
   },
   {
     id: 'fatiha',
