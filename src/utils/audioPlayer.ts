@@ -23,7 +23,6 @@ class RecitationPlayer {
   private currentSessionId: number = 0;
   private activeLoadTimeout: ReturnType<typeof setTimeout> | null = null;
   private ttsFallbackTimeout: ReturnType<typeof setTimeout> | null = null;
-  private currentUtterance: SpeechSynthesisUtterance | null = null;
 
   constructor() {
     if (typeof window !== 'undefined') {
@@ -53,38 +52,13 @@ class RecitationPlayer {
     };
   }
 
-  // Pre-warms and unlocks both Audio element AND Web Speech Synthesis on direct user touch/click gesture for mobile iOS/Android
+  // Pre-warms Web Speech Synthesis on touch/click gesture for mobile iOS/Android
   public unlockMobileAudio() {
     if (typeof window === 'undefined') return;
 
-    // 1. Unlock HTML5 Audio
-    if (this.audio) {
-      try {
-        if (!this.audio.src) {
-          // Silent 1px wav buffer
-          this.audio.src = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
-          this.audio.load();
-        }
-        const p = this.audio.play();
-        if (p !== undefined) {
-          p.then(() => {
-            if (this.audio && this.audio.src.startsWith('data:')) {
-              this.audio.pause();
-            }
-          }).catch(() => {});
-        }
-      } catch (e) {
-        console.warn('Mobile audio unlock warning:', e);
-      }
-    }
-
-    // 2. Unlock Web Speech Synthesis
     if ('speechSynthesis' in window) {
       try {
         window.speechSynthesis.resume();
-        const dummy = new SpeechSynthesisUtterance('');
-        dummy.volume = 0;
-        window.speechSynthesis.speak(dummy);
       } catch (e) {
         console.warn('SpeechSynthesis unlock warning:', e);
       }
@@ -97,9 +71,6 @@ class RecitationPlayer {
       this.pause();
       return;
     }
-
-    // Unlock audio contexts in case gesture is attached
-    this.unlockMobileAudio();
 
     // Stop previous media and invalidate past session callbacks
     this.stopInternal();
@@ -142,14 +113,14 @@ class RecitationPlayer {
         }
       };
 
-      // Fast 2.5 second timeout safeguard for bad network / Vercel range request failures
+      // 6-second timeout safeguard in case network hangs
       this.activeLoadTimeout = setTimeout(() => {
         if (this.currentSessionId === sessionId && this.isLoadingState) {
-          console.warn('Audio URL load timed out (2.5s), switching to Web Speech API fallback');
+          console.warn('Audio URL load timed out, falling back to Web Speech API');
           clearHandlers();
           this.playSpeechSynthesis(itemId, arabicText || '', sessionId, onEnded);
         }
-      }, 2500);
+      }, 6000);
 
       this.audio.oncanplaythrough = () => {
         if (this.currentSessionId === sessionId) {
@@ -184,16 +155,14 @@ class RecitationPlayer {
 
       this.audio.onerror = (e) => {
         if (this.currentSessionId === sessionId) {
-          console.warn('Audio URL playback error, switching immediately to Web Speech API:', e);
+          console.warn('Audio URL playback error, falling back to Web Speech API:', e);
           clearHandlers();
           this.playSpeechSynthesis(itemId, arabicText || '', sessionId, onEnded);
         }
       };
 
-      // Set src and call load() to initiate media stream loading
       try {
         this.audio.src = absoluteAudioUrl;
-        this.audio.load();
       } catch (err) {
         console.warn('Setting audio.src failed:', err);
       }
@@ -201,8 +170,12 @@ class RecitationPlayer {
       const playPromise = this.audio.play();
       if (playPromise !== undefined) {
         playPromise.catch((err) => {
+          // Ignore AbortError caused by user switching tracks or pausing
+          if (err && err.name === 'AbortError') {
+            return;
+          }
           if (this.currentSessionId === sessionId) {
-            console.warn('audio.play() rejected (autoplay/format constraint), switching to Speech Synthesis:', err);
+            console.warn('audio.play() rejected, falling back to Web Speech API:', err);
             clearHandlers();
             this.playSpeechSynthesis(itemId, arabicText || '', sessionId, onEnded);
           }
@@ -240,7 +213,6 @@ class RecitationPlayer {
     // Strip diacritics for clearer mobile Web Speech Synthesis
     const cleanText = text.replace(/[\u0610-\u061A\u06D6-\u06DC\u06DF-\u06E8\u06EA-\u06ED]/g, '');
     const utterance = new SpeechSynthesisUtterance(cleanText || text);
-    this.currentUtterance = utterance;
 
     utterance.lang = 'ar-SA';
     utterance.rate = 0.85;
@@ -264,7 +236,6 @@ class RecitationPlayer {
         clearTimeout(this.ttsFallbackTimeout);
         this.ttsFallbackTimeout = null;
       }
-      this.currentUtterance = null;
       if (this.currentSessionId === sessionId) {
         this.currentItemId = null;
         this.isLoadingState = false;
@@ -276,7 +247,7 @@ class RecitationPlayer {
     utterance.onend = finish;
     utterance.onerror = finish;
 
-    // Set a safety timeout for iOS Safari where utterance.onend sometimes drops
+    // Safety timeout for mobile Safari where utterance.onend sometimes drops
     const estimatedDurationMs = Math.max(5000, text.length * 160);
     this.ttsFallbackTimeout = setTimeout(() => {
       if (this.currentSessionId === sessionId) {
@@ -317,8 +288,6 @@ class RecitationPlayer {
       clearTimeout(this.ttsFallbackTimeout);
       this.ttsFallbackTimeout = null;
     }
-
-    this.currentUtterance = null;
 
     if (this.audio) {
       this.audio.oncanplaythrough = null;
@@ -364,4 +333,3 @@ class RecitationPlayer {
 }
 
 export const recitationPlayer = new RecitationPlayer();
-
