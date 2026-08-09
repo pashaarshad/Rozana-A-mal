@@ -18,7 +18,7 @@ class RecitationPlayer {
     };
   }
 
-  public playRecitation(itemId: string, audioUrl?: string, arabicText?: string) {
+  public playRecitation(itemId: string, audioUrl?: string, arabicText?: string, onEnded?: () => void) {
     // If already playing or loading this item, toggle pause
     if (this.currentItemId === itemId) {
       this.pause();
@@ -40,7 +40,7 @@ class RecitationPlayer {
       const loadTimeout = setTimeout(() => {
         if (this.currentItemId === itemId && this.isLoadingState) {
           console.warn('Audio load timed out, trying speech synthesis fallback');
-          this.playSpeechSynthesis(itemId, arabicText || '');
+          this.playSpeechSynthesis(itemId, arabicText || '', onEnded);
         }
       }, 7000);
 
@@ -71,28 +71,30 @@ class RecitationPlayer {
         this.currentAudio = null;
         this.isLoadingState = false;
         this.notifyListeners();
+        if (onEnded) onEnded();
       });
 
       audio.addEventListener('error', () => {
         clearTimeout(loadTimeout);
         console.warn('Audio URL playback error, falling back to Web Speech API');
-        this.playSpeechSynthesis(itemId, arabicText || '');
+        this.playSpeechSynthesis(itemId, arabicText || '', onEnded);
       });
 
       audio.play().catch(() => {
         clearTimeout(loadTimeout);
-        this.playSpeechSynthesis(itemId, arabicText || '');
+        this.playSpeechSynthesis(itemId, arabicText || '', onEnded);
       });
     } else if (arabicText) {
-      this.playSpeechSynthesis(itemId, arabicText);
+      this.playSpeechSynthesis(itemId, arabicText, onEnded);
     }
   }
 
-  private playSpeechSynthesis(itemId: string, text: string) {
+  private playSpeechSynthesis(itemId: string, text: string, onEnded?: () => void) {
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
       this.currentItemId = null;
       this.isLoadingState = false;
       this.notifyListeners();
+      if (onEnded) onEnded();
       return;
     }
 
@@ -108,11 +110,13 @@ class RecitationPlayer {
     utterance.onend = () => {
       this.currentItemId = null;
       this.notifyListeners();
+      if (onEnded) onEnded();
     };
 
     utterance.onerror = () => {
       this.currentItemId = null;
       this.notifyListeners();
+      if (onEnded) onEnded();
     };
 
     window.speechSynthesis.speak(utterance);

@@ -12,9 +12,9 @@ export const AMAL_ITEMS: AmalItem[] = [
     arabicTitle: 'الصَّلَاةُ عَلَى النَّبِيِّ',
     category: 'core',
     targetCount: 3,
-    arabicText: 'ٱللَّٰهُمَّ صَلِّ عَلَىٰ مُحَمَّدٍ وَعَلَىٰ آلِ مُحَمَّدٍ كَمَا صَلَّيْتَ عَلَىٰ إِبْرَاهِيمَ وَعَلَىٰ آلِ إِبْرَاهِيمَ إِنَّكَ حَمِيدٌ مَجِيدٌ',
-    transliteration: "Allahumma salli 'ala Muhammadin wa 'ala ali Muhammadin kama sallayta 'ala Ibrahima wa 'ala ali Ibrahima innaka Hamidun Majid.",
-    meaningUrduRoman: 'Awwal aur Aakhir kam se kam 3 bar Durood-e-Pak zaroor padhein.',
+    arabicText: 'ٱللَّٰهُمَّ صَلِّ عَلَىٰ مُحَمَّدٍ وَعَلَىٰ آلِ مُحَمَّدٍ كَمَا صَلَّيْتَ عَلَىٰ إِبْرَاهِيمَ وَعَلَىٰ آلِ إِبْرَاهِيمَ إِنَّكَ حَمِيدٌ مَجِيدٌ ۝ ٱللَّٰهُمَّ بَارِكْ عَلَىٰ مُحَمَّدٍ وَعَلَىٰ آلِ مُحَمَّدٍ كَمَا بَارَكْتَ عَلَىٰ إِبْرَاهِيمَ وَعَلَىٰ آلِ إِبْرَاهِيمَ إِنَّكَ حَمِيدٌ مَجِيدٌ\n\n(OR Short Durood: صَلَّى ٱللَّٰهُ عَلَيْهِ وَسَلَّمَ)',
+    transliteration: "Allahumma salli 'ala Muhammadin wa 'ala ali Muhammadin kama sallayta 'ala Ibrahima wa 'ala ali Ibrahima innaka Hamidun Majid. Allahumma barik 'ala Muhammadin wa 'ala ali Muhammadin kama barakta 'ala Ibrahima wa 'ala ali Ibrahima innaka Hamidun Majid.\n\n(OR Short: Sallallahu 'Alayhi Wa Sallam)",
+    meaningUrduRoman: 'Durood-e-Ibrahim (ya koi bhi Durood-e-Pak, jaise "Sallallahu Alayhi Wa Sallam"). Awwal aur Aakhir kam se kam 3 bar zaroor padhein.',
     meaningEnglish: 'O Allah, send blessings upon Muhammad and upon the family of Muhammad. Read at least 3 times at the start and end of Amal.',
     notes: 'Awwal 3 bar Durood-e-Pak padhna',
     audioUrl: '/audio/durood.mp3'

@@ -23,6 +23,7 @@ import { FullCounterModal } from './components/FullCounterModal';
 import { InstructionsModal } from './components/InstructionsModal';
 import { HistoryModal } from './components/HistoryModal';
 import { SettingsModal } from './components/SettingsModal';
+import { ListenModeBar } from './components/ListenModeBar';
 
 import { Sparkles, Heart, ShieldCheck, HelpCircle } from 'lucide-react';
 
@@ -32,11 +33,12 @@ export default function App() {
   const [history, setHistory] = useState(loadHistory);
   const [streak, setStreak] = useState(loadStreak);
 
-  // Modals
+  // Modals & Mode
   const [activeFullCounterItem, setActiveFullCounterItem] = useState<AmalItem | null>(null);
   const [showInstructionsModal, setShowInstructionsModal] = useState(false);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [showListenMode, setShowListenMode] = useState(false);
 
   // Save progress whenever progress changes
   useEffect(() => {
@@ -148,6 +150,8 @@ export default function App() {
       <Header
         streak={streak}
         settings={settings}
+        listenModeActive={showListenMode}
+        onToggleListenMode={() => setShowListenMode((prev) => !prev)}
         onUpdateSettings={handleUpdateSettings}
         onOpenInstructions={() => setShowInstructionsModal(true)}
         onOpenHistory={() => setShowHistoryModal(true)}
@@ -334,6 +338,9 @@ export default function App() {
           onClose={() => setShowSettingsModal(false)}
         />
       )}
+
+      {/* Floating Listen Mode Audio Bar */}
+      {showListenMode && <ListenModeBar />}
     </div>
   );
 }

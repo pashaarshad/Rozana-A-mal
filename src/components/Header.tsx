@@ -1,11 +1,13 @@
 import React from 'react';
-import { Volume2, VolumeX, Flame, Settings, HelpCircle, History, Sparkles } from 'lucide-react';
+import { Volume2, VolumeX, Flame, Settings, HelpCircle, History, Sparkles, Headphones } from 'lucide-react';
 import { UserSettings } from '../types';
 import { BISMILLAH_ARABIC, BISMILLAH_TRANSLITERATION } from '../data/amalData';
 
 interface HeaderProps {
   streak: number;
   settings: UserSettings;
+  listenModeActive: boolean;
+  onToggleListenMode: () => void;
   onUpdateSettings: (newSettings: UserSettings) => void;
   onOpenInstructions: () => void;
   onOpenHistory: () => void;
@@ -15,6 +17,8 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({
   streak,
   settings,
+  listenModeActive,
+  onToggleListenMode,
   onUpdateSettings,
   onOpenInstructions,
   onOpenHistory,
@@ -42,7 +46,21 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         {/* Action Controls */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          {/* Listen Mode Toggle Button */}
+          <button
+            onClick={onToggleListenMode}
+            className={`p-2 rounded-full border transition-all flex items-center gap-1.5 text-xs font-semibold px-3 ${
+              listenModeActive
+                ? 'bg-amber-500 text-emerald-950 border-amber-300 shadow-[0_0_12px_rgba(212,175,55,0.4)] animate-pulse'
+                : 'bg-emerald-900/60 hover:bg-emerald-800/80 border-amber-500/30 text-amber-300'
+            }`}
+            title="Toggle Hands-Free Continuous Listen Mode"
+          >
+            <Headphones className="w-4 h-4 text-amber-300 fill-current" />
+            <span className="hidden sm:inline">Listen Mode</span>
+          </button>
+
           <button
             onClick={toggleSound}
             className="p-2 rounded-full bg-emerald-900/40 hover:bg-emerald-800/60 border border-amber-500/20 text-amber-200 transition-all"
