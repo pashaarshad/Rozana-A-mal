@@ -23,13 +23,16 @@ class RecitationPlayer {
   private currentSessionId: number = 0;
   private activeLoadTimeout: ReturnType<typeof setTimeout> | null = null;
   private ttsFallbackTimeout: ReturnType<typeof setTimeout> | null = null;
+  private dummyUnlockAudio: HTMLAudioElement | null = null;
 
   constructor() {
-    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      try {
-        window.speechSynthesis.getVoices();
-      } catch {
-        // ignore
+    if (typeof window !== 'undefined') {
+      if ('speechSynthesis' in window) {
+        try {
+          window.speechSynthesis.getVoices();
+        } catch {
+          // ignore
+        }
       }
     }
   }
@@ -44,13 +47,35 @@ class RecitationPlayer {
     };
   }
 
-  // Pre-warms Web Speech Synthesis on touch/click gesture for mobile iOS/Android
+  // Pre-warms media playback context on touch/click gesture for mobile iOS/Android
   public unlockMobileAudio() {
     if (typeof window === 'undefined') return;
+
+    try {
+      if (!this.dummyUnlockAudio) {
+        this.dummyUnlockAudio = new Audio();
+        this.dummyUnlockAudio.setAttribute('playsinline', 'true');
+        this.dummyUnlockAudio.setAttribute('webkit-playsinline', 'true');
+      }
+      this.dummyUnlockAudio.src = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
+      const promise = this.dummyUnlockAudio.play();
+      if (promise !== undefined) {
+        promise.then(() => {
+          if (this.dummyUnlockAudio) {
+            this.dummyUnlockAudio.pause();
+          }
+        }).catch(() => {});
+      }
+    } catch {
+      // ignore
+    }
 
     if ('speechSynthesis' in window) {
       try {
         window.speechSynthesis.resume();
+        const dummyUtterance = new SpeechSynthesisUtterance('');
+        dummyUtterance.volume = 0;
+        window.speechSynthesis.speak(dummyUtterance);
       } catch (e) {
         console.warn('SpeechSynthesis unlock warning:', e);
       }
@@ -90,17 +115,16 @@ class RecitationPlayer {
         }
       };
 
-      // Create a fresh Audio element for every track to avoid browser media pipeline state corruption
+      // Create a fresh Audio element for every track
+      // CRITICAL: Do NOT set audio.crossOrigin = 'anonymous' because CDN servers
+      // like cdn.islamic.network do not send CORS headers and setting crossOrigin
+      // causes Chrome/Safari to reject playback with NotSupportedError!
       const audio = new Audio();
       this.activeAudio = audio;
 
       audio.setAttribute('playsinline', 'true');
       audio.setAttribute('webkit-playsinline', 'true');
       audio.preload = 'auto';
-
-      if (absoluteAudioUrl.startsWith('http://') || absoluteAudioUrl.startsWith('https://')) {
-        audio.crossOrigin = 'anonymous';
-      }
 
       const clearHandlers = () => {
         audio.oncanplaythrough = null;
@@ -115,7 +139,7 @@ class RecitationPlayer {
         }
       };
 
-      // 6-second timeout safeguard in case network hangs
+      // Timeout safeguard in case network hangs
       this.activeLoadTimeout = setTimeout(() => {
         if (this.currentSessionId === sessionId && this.isLoadingState) {
           console.warn('Audio URL load timed out, falling back to Web Speech API');
@@ -125,7 +149,7 @@ class RecitationPlayer {
           } catch {}
           this.playSpeechSynthesis(itemId, arabicText || '', sessionId, onEnded);
         }
-      }, 6000);
+      }, 7000);
 
       const markReadyAndPlaying = () => {
         if (this.currentSessionId === sessionId) {
@@ -161,6 +185,7 @@ class RecitationPlayer {
 
       try {
         audio.src = absoluteAudioUrl;
+        audio.load();
       } catch (err) {
         console.warn('Setting audio.src failed:', err);
       }
